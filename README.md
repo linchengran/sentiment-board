@@ -68,4 +68,3 @@ pip install -r .\舆情监控看板\requirements.txt
 舆情监控看板\data\sentiment_events.csv
 ```
 
-`data/` 已加入 `.gitignore`，适合把代码上传到 GitHub 时保留隐私和轻量仓库。
