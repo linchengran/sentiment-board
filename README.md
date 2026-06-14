@@ -16,7 +16,7 @@
 - 后端：Flask、Requests、Pandas
 - 前端：HTML、CSS、原生 JavaScript、SVG
 - 数据：CSV 持久化历史文本，JSON 持久化监控任务
-- NLP：优先使用roberta-base-finetuned-jd-binary-chinese情感模型；模型不可用时降级为词典规则打分
+- NLP：优先复用项目根目录 `analyze_bilibili.py` 的情感模型；模型不可用时降级为词典规则打分
 
 ## 目录结构
 
@@ -188,6 +188,40 @@ https://rsshub.app/bilibili/user/video/你的UID
 5. 若要快速展示多平台效果，可先用”自定义文本”导入各平台样本内容。
 6. 长期监控时将任务保持”运行中”，后端按设置的间隔自动采集；单次分析可选”执行一次”模式，跑完自动停用。
 
+## 情感模型
+
+系统优先调用 `analyze_bilibili.py` 中的深度学习模型；若加载失败则自动降级为内置词典规则打分，无需任何手动干预。
+
+### 首次自动下载（无本地模型时）
+
+安装依赖后直接运行即可，程序会从 HuggingFace 自动下载模型（`uer/roberta-base-finetuned-jd-binary-chinese`，约 400 MB，仅首次需要网络）：
+
+```powershell
+pip install transformers torch
+```
+
+### 使用已有本地模型（跳过下载）
+
+若本地已下载模型，设置环境变量 `SENTIMENT_MODEL_PATH` 指向模型目录，程序启动时会优先使用本地文件：
+
+```powershell
+# Windows（本次会话有效）
+$env:SENTIMENT_MODEL_PATH = "D:\my_models\roberta-base-finetuned-jd-binary-chinese"
+python .\舆情监控看板\server.py
+```
+
+```bash
+# Linux / Mac
+export SENTIMENT_MODEL_PATH="/path/to/roberta-base-finetuned-jd-binary-chinese"
+python 舆情监控看板/server.py
+```
+
+### 不安装模型
+
+不安装 `transformers` / `torch` 也可正常运行，系统自动使用词典规则打分（精度略低，无需下载）。
+
+---
+
 ## 数据文件
 
 本地运行时会生成：
@@ -196,3 +230,4 @@ https://rsshub.app/bilibili/user/video/你的UID
 舆情监控看板\data\tasks.json
 舆情监控看板\data\sentiment_events.csv
 ```
+
