@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>舆情监控看板</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-brand">
+      <span class="logo-badge">舆<span class="logo-star">✦</span></span>
+      <div>
+        <strong>Sentiment Board</strong>
+        <small>个人舆情监控工作台</small>
+      </div>
+    </div>
+    <nav class="nav-pills" aria-label="主导航">
+      <span class="nav-pill active">看板</span>
+      <span class="nav-pill">任务</span>
+      <span class="nav-pill">趋势</span>
+      <span class="nav-pill">明细</span>
+    </nav>
+    <div class="header-right">
+      <span class="status-pill"><i class="status-dot" id="apiStatus"></i> 本地服务</span>
+      <a class="header-link" href="/api/export">导出数据 ↗</a>
+    </div>
+  </header>
+
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div>
+          <h1>舆情监控看板<span class="brand-star">＊</span></h1>
+          <p>创建监控任务，追踪话题情绪走势</p>
+        </div>
+      </div>
+
+      <div class="sidebar-stamp">MONITOR SYSTEM · EST. 2024</div>
+
+      <form class="task-form" id="taskForm">
+        <div class="form-section-label">— 新建任务 —</div>
+
+        <label>
+          <span>任务名称</span>
+          <input id="taskName" name="name" placeholder="例如：新品发布舆情">
+        </label>
+
+        <label>
+          <span>数据源</span>
+          <select id="sourceType" name="source_type"></select>
+        </label>
+
+        <label>
+          <span>监控目标</span>
+          <textarea id="query" name="query" rows="4"></textarea>
+        </label>
+
+        <div class="run-mode-toggle">
+          <label class="run-mode-opt">
+            <input type="radio" name="run_mode" value="once" id="modeOnce">
+            <span>单次分析</span>
+            <small>抓取一次即完成，适合旧视频/帖子</small>
+          </label>
+          <label class="run-mode-opt">
+            <input type="radio" name="run_mode" value="repeat" id="modeRepeat" checked>
+            <span>持续监测</span>
+            <small>按间隔重复抓取，适合追踪实时舆情</small>
+          </label>
+        </div>
+
+        <div id="intervalRow" class="form-grid">
+          <label>
+            <span>间隔分钟</span>
+            <input id="intervalMinutes" name="interval_minutes" type="number" min="1" max="1440" value="10">
+          </label>
+          <label>
+            <span>抓取页数</span>
+            <input id="maxPages" name="max_pages" type="number" min="1" max="50" value="3">
+          </label>
+          <label>
+            <span>目标数量</span>
+            <input id="topItems" name="top_items" type="number" min="1" max="20" value="5">
+          </label>
+        </div>
+
+        <div class="source-hint" id="sourceHint"></div>
+
+        <details class="cookie-section" id="cookieSection">
+          <summary>🔑 填入 Cookie（绕过风控）</summary>
+          <div class="cookie-body">
+            <p class="cookie-tip">
+              浏览器登录后按 <kbd>F12</kbd> → Network → 任意请求 → Request Headers → 复制 <code>Cookie:</code> 后面的全部内容粘贴到这里。<br>
+              B站、微博、知乎 填对应平台的 Cookie，RSS 和自定义文本不需要填。
+            </p>
+            <textarea id="taskCookie" name="cookie" rows="3" placeholder="SESSDATA=xxx; bili_jct=xxx; ..."></textarea>
+          </div>
+        </details>
+
+        <button class="primary-btn" type="submit">
+          <span class="btn-icon">＋</span>
+          新建监控
+        </button>
+      </form>
+
+      <div class="task-toolbar">
+        <select id="taskFilter">
+          <option value="all">全部任务</option>
+        </select>
+        <button class="icon-btn" id="refreshBtn" type="button" title="刷新数据">↺ 刷新</button>
+      </div>
+
+      <div class="task-list" id="taskList"></div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="topbar-left">
+          <div class="section-eyebrow">[ 概览 · Overview ]</div>
+          <h2 id="pageTitle">全局舆情概览</h2>
+          <p id="lastFetched">等待数据</p>
+        </div>
+        <div class="top-actions">
+          <select id="freqSelect">
+            <option value="10min">10 分钟</option>
+            <option value="30min" selected>30 分钟</option>
+            <option value="1H">1 小时</option>
+            <option value="6H">6 小时</option>
+            <option value="1D">1 天</option>
+          </select>
+          <button class="secondary-btn" id="demoBtn" type="button">载入演示数据</button>
+          <button class="secondary-btn" id="runDueBtn" type="button">执行到期任务</button>
+          <button class="secondary-btn" id="timeRangeBtn" type="button">查看全部历史</button>
+          <button class="secondary-btn danger-btn" id="clearBtn" type="button">🗑 清除数据</button>
+        </div>
+      </div>
+
+      <section class="metrics-grid" data-section="dashboard">
+        <div class="metric metric-coral">
+          <span>累计记录</span>
+          <strong id="metricTotal">0</strong>
+          <em class="metric-sub">Total Records</em>
+        </div>
+        <div class="metric metric-mint">
+          <span>平均情感分</span>
+          <strong id="metricAvg">0.000</strong>
+          <em class="metric-sub">Avg Score</em>
+        </div>
+        <div class="metric metric-amber">
+          <span>最近情感分</span>
+          <strong id="metricLatest">0.000</strong>
+          <em id="metricDelta">0.000</em>
+        </div>
+        <div class="metric metric-lavender">
+          <span>负面占比</span>
+          <strong id="metricNegative">0.0%</strong>
+          <em class="metric-sub">Negative Ratio</em>
+        </div>
+        <div class="metric metric-pink">
+          <span>拐点数</span>
+          <strong id="metricPoints">0</strong>
+          <em class="metric-sub">Turning Points</em>
+        </div>
+      </section>
+
+      <section class="panel" data-section="dashboard trend">
+        <div class="panel-head">
+          <div>
+            <div class="panel-eyebrow">[ 01 ] Sentiment Trend</div>
+            <h3>情感趋势</h3>
+            <p>平均情感分与评论量</p>
+          </div>
+          <div class="legend">
+            <span><i class="line-dot"></i>情感分</span>
+            <span><i class="bar-dot"></i>记录量</span>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <svg id="trendChart" viewBox="0 0 1000 340" preserveAspectRatio="none"></svg>
+          <div class="empty-state" id="trendEmpty">暂无趋势数据</div>
+        </div>
+      </section>
+
+      <section class="content-grid" data-section="dashboard">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-eyebrow">[ 02 ] Inflection Points</div>
+              <h3>舆情拐点</h3>
+              <p>情绪突变与负面占比突变</p>
+            </div>
+          </div>
+          <div class="point-list" id="pointList"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-eyebrow">[ 03 ] Keywords</div>
+              <h3>高频关键词</h3>
+              <p>按出现次数排序</p>
+            </div>
+          </div>
+          <div class="keyword-list" id="keywordList"></div>
+        </div>
+      </section>
+
+      <section class="panel" data-section="dashboard">
+        <div class="panel-head">
+          <div>
+            <div class="panel-eyebrow">[ 04 ] Distribution</div>
+            <h3>平台与任务分布</h3>
+            <p>不同来源的情绪概况</p>
+          </div>
+        </div>
+        <div class="distribution-grid">
+          <div>
+            <h4>平台 <span class="dist-sub">Platform</span></h4>
+            <div id="platformList" class="rank-list"></div>
+          </div>
+          <div>
+            <h4>任务 <span class="dist-sub">Tasks</span></h4>
+            <div id="taskMetricList" class="rank-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" data-section="dashboard details">
+        <div class="panel-head">
+          <div>
+            <div class="panel-eyebrow">[ 05 ] Text Details</div>
+            <h3>文本明细</h3>
+            <p>最新抓取的评论、标题或帖子</p>
+          </div>
+          <div class="table-actions">
+            <button class="tab-btn active" data-label="all" type="button">全部</button>
+            <button class="tab-btn" data-label="负面" type="button">负面</button>
+            <button class="tab-btn" data-label="正面" type="button">正面</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>时间</th>
+                <th>来源</th>
+                <th>任务</th>
+                <th>情感</th>
+                <th>文本</th>
+                <th>热度</th>
+              </tr>
+            </thead>
+            <tbody id="commentTable"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
