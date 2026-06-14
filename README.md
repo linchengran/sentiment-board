@@ -16,7 +16,7 @@
 - 后端：Flask、Requests、Pandas
 - 前端：HTML、CSS、原生 JavaScript、SVG
 - 数据：CSV 持久化历史文本，JSON 持久化监控任务
-- NLP：优先复用项目根目录 `analyze_bilibili.py` 的情感模型；模型不可用时降级为词典规则打分
+- NLP：优先使用roberta-base-finetuned-jd-binary-chinese情感模型；模型不可用时降级为词典规则打分
 
 ## 目录结构
 
