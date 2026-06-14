@@ -2,3 +2,7 @@ flask
 pandas
 requests
 jieba
+
+# 可选：深度学习情感模型（不安装则自动降级为词典规则打分）
+# transformers>=4.30
+# torch>=2.0
