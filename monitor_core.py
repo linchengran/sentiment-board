@@ -278,7 +278,8 @@ def create_task(payload: dict) -> dict:
         "last_skipped": 0,
         "total_saved": 0,
     }
-    task["next_run_at"] = _next_run_text(task)
+    # once 任务创建后立刻可被调度器触发（不等 interval_minutes）
+    task["next_run_at"] = _now_text() if task["run_mode"] == "once" else _next_run_text(task)
 
     tasks = load_tasks()
     tasks.append(task)
@@ -429,6 +430,9 @@ def run_task(task_id: str) -> dict:
             task["last_error"] = str(exc)
             task["last_added"] = 0
             task["last_skipped"] = 0
+            # once 任务失败后也停用，避免调度器在 interval 后自动重试
+            if task.get("run_mode") == "once":
+                task["enabled"] = False
             save_tasks(tasks)
             raise
     raise KeyError("任务不存在")
