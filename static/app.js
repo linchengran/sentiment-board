@@ -442,8 +442,14 @@ els.taskList.addEventListener('click', async (event) => {
   button.disabled = true;
   try {
     if (action === 'run') {
-      const result = await api(`/api/tasks/${id}/run`, { method: 'POST' });
-      showToast(`采集完成：新增 ${result.added || 0} 条，重复 ${result.skipped || 0} 条`);
+      const origText = button.textContent;
+      button.textContent = '执行中…';
+      try {
+        const result = await api(`/api/tasks/${id}/run`, { method: 'POST' });
+        showToast(`采集完成：新增 ${result.added || 0} 条，重复 ${result.skipped || 0} 条`);
+      } finally {
+        button.textContent = origText;
+      }
     }
     if (action === 'toggle') {
       await api(`/api/tasks/${id}`, {
