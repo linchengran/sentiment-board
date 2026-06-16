@@ -50,15 +50,29 @@ def _predict(text):
 
 
 def analyze_sentiment(comments):
-    results = []
-    for text in comments:
-        try:
-            score = _predict(text)
-            label = '正面' if score >= 0.5 else '负面'
-            results.append({'text': text, 'score': score, 'label': label})
-        except Exception:
-            continue
-    return results
+    if not comments:
+        return []
+    classifier = _get_classifier()
+    truncated = [text[:512] for text in comments]
+    try:
+        outputs = classifier(truncated, batch_size=32)
+        results = []
+        for text, out in zip(comments, outputs):
+            lbl = out['label'].lower()
+            conf = out['score']
+            score = conf if ('pos' in lbl or lbl == 'label_1') else 1.0 - conf
+            results.append({'text': text, 'score': score, 'label': '正面' if score >= 0.5 else '负面'})
+        return results
+    except Exception:
+        # 批量失败则逐条兜底，用 0.5 代替异常条目
+        results = []
+        for text, trunc in zip(comments, truncated):
+            try:
+                score = _predict(text)
+            except Exception:
+                score = 0.5
+            results.append({'text': text, 'score': score, 'label': '正面' if score >= 0.5 else '负面'})
+        return results
 
 
 def print_report(results):
