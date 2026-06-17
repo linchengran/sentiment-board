@@ -21,15 +21,17 @@
 ## 目录结构
 
 ```text
-舆情监控看板/
-├── server.py              # Flask API 与任务调度入口
-├── monitor_core.py        # 采集、情感分析、持久化、趋势与拐点逻辑
-├── static/
-│   ├── index.html         # 页面结构
-│   ├── styles.css         # 看板样式
-│   └── app.js             # 前端状态、API 调用和 SVG 图表
-├── requirements.txt
-└── README.md
+（项目根目录）
+├── analyze_bilibili.py    # 深度学习情感模型（可选，缺失时自动降级为词典打分）
+└── 舆情监控看板/
+    ├── server.py              # Flask API 与任务调度入口
+    ├── monitor_core.py        # 采集、情感分析、持久化、趋势与拐点逻辑
+    ├── static/
+    │   ├── index.html         # 页面结构
+    │   ├── styles.css         # 看板样式
+    │   └── app.js             # 前端状态、API 调用和 SVG 图表
+    ├── requirements.txt
+    └── README.md
 ```
 
 ## 运行方式
@@ -37,7 +39,8 @@
 在项目根目录运行：
 
 ```powershell
-cd C:\Users\linchengran\OneDrive\Desktop\day2\imdb_sentiment
+# 进入解压后的项目根目录（analyze_bilibili.py 所在的那一层）
+cd 解压路径\imdb_sentiment
 python .\舆情监控看板\server.py
 ```
 
@@ -205,14 +208,14 @@ pip install transformers torch
 若本地已下载模型，设置环境变量 `SENTIMENT_MODEL_PATH` 指向模型目录，程序启动时会优先使用本地文件：
 
 ```powershell
-# Windows（本次会话有效）
-$env:SENTIMENT_MODEL_PATH = "D:\my_models\roberta-base-finetuned-jd-binary-chinese"
+# Windows（本次会话有效，将下面的路径替换为模型实际所在目录）
+$env:SENTIMENT_MODEL_PATH = "你的模型目录路径\roberta-base-finetuned-jd-binary-chinese"
 python .\舆情监控看板\server.py
 ```
 
 ```bash
-# Linux / Mac
-export SENTIMENT_MODEL_PATH="/path/to/roberta-base-finetuned-jd-binary-chinese"
+# Linux / Mac（将下面的路径替换为模型实际所在目录）
+export SENTIMENT_MODEL_PATH="/你的模型目录路径/roberta-base-finetuned-jd-binary-chinese"
 python 舆情监控看板/server.py
 ```
 
